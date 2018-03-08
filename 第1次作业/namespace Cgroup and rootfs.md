@@ -1,4 +1,4 @@
-#了解namespace、Cgroup、rootfs等机制
+# 了解namespace、Cgroup、rootfs等机制
 
 wikipedia对应链接
 [namespaces](https://en.wikipedia.org/wiki/Linux_namespaces)
