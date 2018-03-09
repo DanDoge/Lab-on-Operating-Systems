@@ -6,10 +6,10 @@ not finished
 
 ## 试用 lxc-python-api
 
-not finished
+works in theory, not tested
 
 ## 比较 docker 和 lxc
 
-
+not finished
 
 ###### last modified date: 03/08
