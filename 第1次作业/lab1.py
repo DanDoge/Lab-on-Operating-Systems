@@ -22,12 +22,15 @@ def write_file():
     with open("/Hello-Container", "w") as fd:
         fd.write("HuangDaoji 1600017857")
 
+# 检查
+def verification():
+    with open("/Hello-Container", "r") as fd:
+        print(fd.read().strip())
+
 # 在容器中调用
 c.attach_wait(write_file)
+c.attach_wait(verification)
 
 # 善后工作
 if not c.shutdown(30):
-    print("Failed to cleanly shutdown the container, forcing.")
-    if not c.stop():
-        print("Failed to kill the container", file=sys.stderr)
-        sys.exit(1)
+    c.stop()
