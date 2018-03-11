@@ -36,7 +36,9 @@
 
 最终的文件在[这里](https://github.com/DanDoge/Lab-on-Operating-Systems/blob/master/%E7%AC%AC1%E6%AC%A1%E4%BD%9C%E4%B8%9A/lab1.py)
 
-遇到的问题: 在Ubuntu机器上不能创建debian容器(not fixed, until 03/10)
+测试成功(03-11 21:34)
+
+遇到的问题: 在Ubuntu机器上创建(下载)debian容器耗时很长(1-2h), 相比于创建Ubuntu容器
 
 ###### 参考资料
 
@@ -44,6 +46,18 @@
 
 ## 比较 docker 和 lxc
 
-not finished
+docker因为增加了一层封装(对系统配置的封装), 因此可移植性相对于lxc来说更强,
+docker提供一个版本控制系统, 使得更新容器只需要更新变化的部分(类似git), 而这个是lxc没有的
+lxc容器提供了一个具备完整功能的操作系统, 而docker容器设计上只需支持一个应用
 
-###### last modified date: 03/10
+###### 参考资料
+
+[Docker和LXC有什么不同?](http://dockone.io/article/368)
+
+[我眼中的 Docker（一）docker、vm、lxc](http://blog.csdn.net/jcjc918/article/details/46486655)
+
+[LXC、LXD、Docker的区别与联系(by quqi99)](http://blog.csdn.net/quqi99/article/details/75448101)
+
+[What is the difference between Docker, LXD, and LXC](https://unix.stackexchange.com/questions/254956/what-is-the-difference-between-docker-lxd-and-lxc)
+
+###### last modified date: 03/11

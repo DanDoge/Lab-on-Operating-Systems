@@ -11,6 +11,6 @@
     - [x] Cgroup
     - [x] rootfs
 - [x] 利用LXC Python API编写程序，要求执行该程序会先创建并启动一个Debain系统容器，然后该程序会在容器根目录创建一个名为 Hello-Container的文件，并在文件中写入姓名和学号，最后该程序会停止当前容器。程序需和报告一起提交。
-- [ ] 对docker和lxc进行比较。
+- [x] 对docker和lxc进行比较。
 
-###### last modified date: 2018-03-08
+###### last modified date: 2018-03-11
