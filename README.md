@@ -13,4 +13,15 @@
 - [x] 利用LXC Python API编写程序，要求执行该程序会先创建并启动一个Debain系统容器，然后该程序会在容器根目录创建一个名为 Hello-Container的文件，并在文件中写入姓名和学号，最后该程序会停止当前容器。程序需和报告一起提交。
 - [x] 对docker和lxc进行比较。
 
-###### last modified date: 2018-03-11
+## Lab2
+
+ - [ ] 阅读rootfs制作脚本, 说明制作流程
+    - [ ] 阅读debian制作脚本
+    - [ ] 说明制作流程
+ - [ ] 完善fakeContainer.c, 添加cgroup子系统, 资源上限1核心, 512MB. 自选压力测试程序. 讨论内存占用超出时, 是否会kill掉
+    - [ ] 完善fakeContainer.c
+    - [ ] 自选压力测试
+    - [ ] 讨论内存超出
+ - [ ] lab1的代码方面的提高
+
+###### last modified date: 2018-03-14

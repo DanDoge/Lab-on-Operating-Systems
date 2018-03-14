@@ -46,8 +46,10 @@
 
 ## 比较 docker 和 lxc
 
-docker因为增加了一层封装(对系统配置的封装), 因此可移植性相对于lxc来说更强,
-docker提供一个版本控制系统, 使得更新容器只需要更新变化的部分(类似git), 而这个是lxc没有的
+docker因为增加了一层封装(对系统配置的封装), 因此可移植性相对于lxc来说更强.
+
+docker提供一个版本控制系统, 使得更新容器只需要更新变化的部分(类似git), 而这个是lxc没有的.
+
 lxc容器提供了一个具备完整功能的操作系统, 而docker容器设计上只需支持一个应用
 
 ###### 参考资料
@@ -60,4 +62,4 @@ lxc容器提供了一个具备完整功能的操作系统, 而docker容器设计
 
 [What is the difference between Docker, LXD, and LXC](https://unix.stackexchange.com/questions/254956/what-is-the-difference-between-docker-lxd-and-lxc)
 
-###### last modified date: 03/11
+###### last modified date: 03/14
