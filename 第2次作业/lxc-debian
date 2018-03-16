@@ -21,6 +21,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 # Detect use under userns (unsupported)
+
+# $@ : 所有参数
+# 1>&2 : 1 重定向到2
+
 for arg in "$@"; do
     [ "$arg" = "--" ] && break
     if [ "$arg" = "--mapped-uid" -o "$arg" = "--mapped-gid" ]; then
@@ -29,6 +33,8 @@ for arg in "$@"; do
         exit 1
     fi
 done
+
+# 指定环境变量
 
 # Make sure the usual locations are in PATH
 export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
@@ -43,20 +49,26 @@ LXC_CACHE_PATH=${LXC_CACHE_PATH:-"$LOCALSTATEDIR/cache/lxc"}
 
 configure_debian()
 {
+    # $1... 传进来的参数
     rootfs=$1
     hostname=$2
     num_tty=$3
 
+    # seq 生成从1 到 numtty的数字
+
     # squeeze only has /dev/tty and /dev/tty0 by default,
     # therefore creating missing device nodes for tty1-4.
     for tty in $(seq 1 "$num_tty"); do
+        # 检测文件存在
         if [ ! -e "$rootfs/dev/tty$tty" ]; then
+            # 创建设备文件
             mknod "$rootfs/dev/tty$tty" c 4 "$tty"
         fi
     done
 
     # configure the inittab
-    cat <<EOF > $rootfs/etc/inittab
+    # 写文件 嗯, id:runlevels:action:process, ...好长....明天再看了
+    cat << EOF > $rootfs/etc/inittab
 id:3:initdefault:
 si::sysinit:/etc/init.d/rcS
 l0:0:wait:/etc/init.d/rc 0
@@ -75,14 +87,20 @@ p0::powerfail:/sbin/init 0
 EOF
 
     # symlink mtab
+    # 存在就删掉
     [ -e "$rootfs/etc/mtab" ] && rm "$rootfs/etc/mtab"
+    # 生成一个镜像
     ln -s /proc/self/mounts "$rootfs/etc/mtab"
 
     # disable selinux in debian
+    # 递归创建目录?
     mkdir -p "$rootfs/selinux"
     echo 0 > "$rootfs/selinux/enforce"
 
     # configure the network using the dhcp
+    # 网络接口
+    # auto xxx : 启动时自动配置, lo接口本地回环
+    # 动态主机配置协议?
     cat <<EOF > $rootfs/etc/network/interfaces
 auto lo
 iface lo inet loopback
@@ -92,6 +110,7 @@ iface eth0 inet dhcp
 EOF
 
     # set the hostname
+    # 嗯,字面上意思
     cat <<EOF > $rootfs/etc/hostname
 $hostname
 EOF
@@ -99,54 +118,66 @@ EOF
     # reconfigure some services
 
     # but first reconfigure locales - so we get no noisy perl-warnings
+    # 系统语言长度为零
     if [ -z "$LANG" ]; then
         cat >> "$rootfs/etc/locale.gen" << EOF
 en_US.UTF-8 UTF-8
 EOF
+        # 改语言...
         chroot "$rootfs" locale-gen en_US.UTF-8 UTF-8
         chroot "$rootfs" update-locale LANG=en_US.UTF-8
     else
+        # 取.之后的部分
         encoding=$(echo "$LANG" | cut -d. -f2)
+        # 删掉了什么东西? 正则?
         chroot "$rootfs" sed -e "s/^# \(${LANG} ${encoding}\)/\1/" \
             -i /etc/locale.gen 2> /dev/null
+        # 再写编码进去
         cat >> "$rootfs/etc/locale.gen" << EOF
 $LANG $encoding
 EOF
+        # 再把语言配置好
         chroot "$rootfs" locale-gen "$LANG" "$encoding"
         chroot "$rootfs" update-locale LANG="$LANG"
     fi
 
     # remove pointless services in a container
+    # 时钟也不可以...?
     chroot "$rootfs" /usr/sbin/update-rc.d -f checkroot.sh disable
     chroot "$rootfs" /usr/sbin/update-rc.d -f umountfs disable
     chroot "$rootfs" /usr/sbin/update-rc.d -f hwclock.sh disable
     chroot "$rootfs" /usr/sbin/update-rc.d -f hwclockfirst.sh disable
 
     # generate new SSH keys
+    # 文件可执行
     if [ -x "$rootfs/var/lib/dpkg/info/openssh-server.postinst" ]; then
+        # 不要自动启动
         cat > "$rootfs/usr/sbin/policy-rc.d" << EOF
 #!/bin/sh
 exit 101
 EOF
         chmod +x "$rootfs/usr/sbin/policy-rc.d"
-
+        # 是常规文件
         if [ -f "$rootfs/etc/init/ssh.conf" ]; then
             mv "$rootfs/etc/init/ssh.conf" "$rootfs/etc/init/ssh.conf.disabled"
         fi
-
+        # 164-167 没看懂
         rm -f "$rootfs/etc/ssh/"ssh_host_*key*
 
         DPKG_MAINTSCRIPT_PACKAGE=openssh DPKG_MAINTSCRIPT_NAME=postinst chroot "$rootfs" /var/lib/dpkg/info/openssh-server.postinst configure
+        # 做一个文本替换
         sed -i "s/root@$(hostname)/root@$hostname/g" "$rootfs/etc/ssh/"ssh_host_*.pub
 
         if [ -f "$rootfs/etc/init/ssh.conf.disabled" ]; then
+            # 又写回去了
             mv "$rootfs/etc/init/ssh.conf.disabled" "$rootfs/etc/init/ssh.conf"
         fi
-
+        # 删了? 喵喵喵?
         rm -f "$rootfs/usr/sbin/policy-rc.d"
     fi
 
     # set initial timezone as on host
+    # 嗯, 字面上意思
     if [ -f /etc/timezone ]; then
         cat /etc/timezone > "$rootfs/etc/timezone"
         chroot "$rootfs" dpkg-reconfigure -f noninteractive tzdata
@@ -163,6 +194,7 @@ EOF
 
 write_sourceslist()
 {
+    # 参数左移...这太狗了
     local rootfs="$1";  shift
     local release="$1"; shift
     local arch="$1";    shift
@@ -171,7 +203,7 @@ write_sourceslist()
     if [ -n "${arch}" ]; then
         prefix="deb [arch=${arch}]"
     fi
-
+    # main-only, not mai-non-ly
     if [ "$mainonly" = 1 ]; then
       non_main=''
     else
@@ -181,7 +213,7 @@ write_sourceslist()
     cat >> "${rootfs}/etc/apt/sources.list" << EOF
 ${prefix} $MIRROR          ${release}         main${non_main}
 EOF
-
+    # -a: &
     if [ "$release" != "unstable" -a "$release" != "sid" ]; then
       cat >> "${rootfs}/etc/apt/sources.list" << EOF
 ${prefix} $SECURITY_MIRROR ${release}/updates main${non_main}
@@ -191,6 +223,7 @@ EOF
 
 install_packages()
 {
+    # 字面意思
     local rootfs="$1"; shift
     local packages="$*"
 
@@ -208,6 +241,7 @@ configure_debian_systemd()
     num_tty=$4
 
     # this only works if we have getty@.service to manipulate
+    # 字面意思
     if [ -f "${rootfs}/lib/systemd/system/getty@.service" ]; then
        sed -e 's/^ConditionPathExists=/# ConditionPathExists=/' \
            -e 's/After=dev-%i.device/After=/' \
@@ -216,12 +250,14 @@ configure_debian_systemd()
     fi
 
     # just in case systemd is not installed
+    #　嗯
     mkdir -p "${rootfs}/lib/systemd/system"
     mkdir -p "${rootfs}/etc/systemd/system/getty.target.wants"
 
     # Fix getty-static-service as debootstrap does not install dbus
     if [ -e "$rootfs//lib/systemd/system/getty-static.service" ] ; then
         local tty_services
+        # -n 不换行?
         tty_services=$(for i in $(seq 2 "$num_tty"); do echo -n "getty@tty${i}.service "; done; )
         sed 's/ getty@tty.*/'" $tty_services "'/g' \
                 "$rootfs/lib/systemd/system/getty-static.service" |  \
@@ -229,6 +265,7 @@ configure_debian_systemd()
     fi
 
     # This function has been copied and adapted from lxc-fedora
+    # 这是在rootfs内连接吧
     rm -f "${rootfs}/etc/systemd/system/default.target"
     chroot "${rootfs}" ln -s /dev/null /etc/systemd/system/udev.service
     chroot "${rootfs}" ln -s /dev/null /etc/systemd/system/systemd-udevd.service
@@ -241,6 +278,7 @@ configure_debian_systemd()
     # Since we use static-getty.target; we need to mask container-getty@.service generated by
     # container-getty-generator, so we don't get multiple instances of agetty running.
     # See https://github.com/lxc/lxc/issues/520 and https://github.com/lxc/lxc/issues/484
+    # 明早起来看吧
     ( cd "${rootfs}/etc/systemd/system/getty.target.wants"
         for i in $(seq 0 "$num_tty"); do ln -sf /dev/null container-getty\@"${i}".service; done )
 
