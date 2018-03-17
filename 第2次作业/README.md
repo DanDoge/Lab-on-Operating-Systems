@@ -56,11 +56,53 @@
 
 四张图片
 
-内存是被限制住的, 进程也没有被杀死, 乖乖去读文档吧
+内存是被限制住的, 在这次测试中进程也没有被杀死, 乖乖去读文档吧
 
 #### 讨论
 
-读文档!!!
+cgroup文档中描述的是, 如果内存使用超过设定的限制, 会先执行回收程序(LRU)尝试回收内存, 如果失败的话, 则占用内存最高的程序会被杀死
+
+用stress中内存压力测试是不断分配内存写'z', (至少这次实验)没有出现程序被杀死的情况
+
+```c
+int
+hogvm (long long bytes, long long stride, long long hang, int keep)
+{
+    long long i;
+    char* ptr = 0;
+    char c;
+    int do_malloc = 1;
+
+    while (1)
+    {
+        if (do_malloc)
+        {
+            dbg (stdout, "allocating %lli bytes ...\n", bytes);
+            if (!(ptr = (char *) malloc (bytes * sizeof (char))))
+            {
+                err (stderr, "hogvm malloc failed: %s\n", strerror (errno));
+                return 1;
+            }
+            if (keep)
+            do_malloc = 0;
+        }
+
+
+
+        for (i = 0; i < bytes; i += stride)
+        {
+            c = ptr[i];
+            if (c != 'Z')
+            {
+                err (stderr, "memory corruption at: %p\n", ptr + i);
+                return 1;
+            }
+        }
+    return 0;
+}
+```
+
+文档中描述了当内存限制很小的时候,  会出现程序被杀死的情况, 但是还没有复现 (**需要实验**)
 
 ## lab1代码的完善
 
