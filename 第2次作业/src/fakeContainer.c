@@ -19,7 +19,7 @@
 
 //rootfs在本机所在路径
 //TODO:rootfs的路径需要根据自己的配置来设置
-const char* rootfs = "/home/pkusei/.local/share/lxc/ubuntu1/rootfs";
+const char* rootfs = "/var/lib/lxc/ubuntu-test/rootfs";
 
 //container 主机名
 const char* hostname = "fakeContainer";

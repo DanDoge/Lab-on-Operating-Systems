@@ -287,6 +287,7 @@ configure_debian_systemd()
 
 cleanup()
 {
+    # 字面上意思
     rm -rf "$cache/partial-$release-$arch"
     rm -rf "$cache/rootfs-$release-$arch"
 }
@@ -300,6 +301,7 @@ download_debian()
       *)
         init=init
         ;;
+    # case反过来
     esac
     packages=\
 $init,\
@@ -316,6 +318,7 @@ openssh-server
     arch=$2
     release=$3
 
+    # 收到这些信号, 执行这个函数
     trap cleanup EXIT SIGHUP SIGINT SIGTERM
 
     # Create the cache
@@ -333,11 +336,13 @@ openssh-server
                 gpgkeyname="archive-key-8"
                 ;;
         esac
+        # 下载一点东西
         wget https://ftp-master.debian.org/keys/${gpgkeyname}.asc -O - --quiet \
             | gpg --import --no-default-keyring --keyring="${releasekeyring}"
     fi
     # check the mini debian was not already downloaded
     mkdir -p "$cache/partial-$release-$arch"
+    # $? 是上一个指令的返回值
     if [ $? -ne 0 ]; then
         echo "Failed to create '$cache/partial-$release-$arch' directory"
         return 1
@@ -345,16 +350,19 @@ openssh-server
 
     # download a mini debian into a cache
     echo "Downloading debian minimal ..."
+    # 应该在这里就看到一群retrieving了
     debootstrap --verbose --variant=minbase --arch="$arch" \
         --include="$packages" --keyring="${releasekeyring}" \
         "$release" "$cache/partial-$release-$arch" "$MIRROR"
+    # 网络不好是这样的
     if [ $? -ne 0 ]; then
         echo "Failed to download the rootfs, aborting."
         return 1
     fi
-
+    # rootfs
     mv "$1/partial-$release-$arch" "$1/rootfs-$release-$arch"
     echo "Download complete."
+    # 重置信号
     trap EXIT
     trap SIGINT
     trap SIGTERM
@@ -373,6 +381,7 @@ copy_debian()
     # make a local copy of the minidebian
     echo -n "Copying rootfs to $rootfs..."
     mkdir -p "$rootfs"
+    # 文件同步
     rsync -Ha "$cache/rootfs-$release-$arch"/ "$rootfs"/ || return 1
     return 0
 }
@@ -385,6 +394,7 @@ install_debian()
     cache="$4/debian"
     mkdir -p $LOCALSTATEDIR/lock/subsys/
     (
+        # 拿到一个锁, 9: 文件描述符
         flock -x 9
         if [ $? -ne 0 ]; then
             echo "Cache repository is busy."
@@ -392,6 +402,7 @@ install_debian()
         fi
 
         echo "Checking cache download in $cache/rootfs-$release-$arch ... "
+        # 没cache过就下载一个
         if [ ! -e "$cache/rootfs-$release-$arch" ]; then
             download_debian "$cache" "$arch" "$release"
             if [ $? -ne 0 ]; then
@@ -399,7 +410,7 @@ install_debian()
                 return 1
             fi
         fi
-
+        # 字面意思
         copy_debian "$cache" "$arch" "$rootfs" "$release"
         if [ $? -ne 0 ]; then
             echo "Failed to copy rootfs"
@@ -424,12 +435,16 @@ copy_configuration()
     # Generate the configuration file
     # if there is exactly one veth network entry, make sure it has an
     # associated hwaddr.
+    # virtual ethernet, 一个namespace发到另一个namespace
+    # hwaddr?
+    # grep: 用正则表达式找东西
     nics=$(grep -ce '^lxc\.network\.type[ \t]*=[ \t]*veth' "$path/config")
     if [ "$nics" -eq 1 ]; then
         grep -q "^lxc.network.hwaddr" "$path/config" || sed -i -e "/^lxc\.network\.type[ \t]*=[ \t]*veth/a lxc.network.hwaddr = 00:16:3e:$(openssl rand -hex 3| sed 's/\(..\)/\1:/g; s/.$//')" "$path/config"
     fi
 
     ## Add all the includes
+    # 是的呢
     echo "" >> "$path/config"
     echo "# Common configuration" >> "$path/config"
     if [ -e "${LXC_TEMPLATE_CONFIG}/debian.common.conf" ]; then
@@ -442,6 +457,7 @@ copy_configuration()
     ## Add the container-specific config
     echo "" >> "$path/config"
     echo "# Container specific configuration" >> "$path/config"
+    # 忽略掉写的东西
     grep -q "^lxc.rootfs" "$path/config" 2> /dev/null || echo "lxc.rootfs = $rootfs" >> "$path/config"
 
     cat <<EOF >> $path/config
@@ -464,6 +480,7 @@ post_process()
     local release="$1"; shift
     local arch="$1"; shift
     local hostarch="$1"; shift
+    # 所有参数, 一个字符串
     local packages="$*"
 
     # Disable service startup
@@ -474,6 +491,7 @@ EOF
     chmod +x "${rootfs}/usr/sbin/policy-rc.d"
 
     # If the container isn't running a native architecture, setup multiarch
+    # 字面意思
     if [ "${arch}" != "${hostarch}" ]; then
         # Test if dpkg supports multiarch
         if ! chroot "$rootfs" dpkg --print-foreign-architectures 2>&1; then
@@ -484,6 +502,7 @@ EOF
     # Write a new sources.list containing both native and multiarch entries
     > "${rootfs}/etc/apt/sources.list"
     if [ "${arch}" = "${hostarch}" ]; then
+        # 写到/etc/apt/xxx里面
         write_sourceslist "${rootfs}" "${release}" "${arch}"
     else
         write_sourceslist "${rootfs}" "${release}"
@@ -494,6 +513,7 @@ EOF
         local pack_list
         pack_list="${packages//,/ }"
         echo "Installing packages: ${pack_list}"
+        # 字面意思
         install_packages "${rootfs}" "${pack_list}"
     fi
 
@@ -593,6 +613,7 @@ fi
 hostarch=$arch
 mainonly=1
 
+# 读参数
 while true
 do
     case "$1" in
@@ -618,6 +639,7 @@ if [ ! -z "$clean" -a -z "$path" ]; then
     exit 0
 fi
 
+# i386的子集?
 if [ "$arch" = "i686" ]; then
     arch=i386
 fi
@@ -638,10 +660,12 @@ if [ $hostarch = "armhf" -o $hostarch = "armel" ] && \
 fi
 
 if [ $hostarch = "powerpc" -a $arch != "powerpc" ]; then
+    # 这俩不一样嘛
     echo "can't create $arch container on $hostarch"
     exit 1
 fi
 
+# 指令的类型
 type debootstrap
 if [ $? -ne 0 ]; then
     echo "'debootstrap' command is missing"
@@ -653,15 +677,19 @@ if [ -z "$path" ]; then
     exit 1
 fi
 
+# 显示id
 if [ "$(id -u)" != "0" ]; then
     echo "This script should be run as 'root'"
     exit 1
 fi
 
+# head 头十行, awk 文本拆分
 current_release=$(wget "${MIRROR}/dists/stable/Release" -O - 2> /dev/null | head |awk '/^Codename: (.*)$/ { print $2; }')
 release=${release:-${current_release}}
 valid_releases=('wheezy' 'jessie' 'stretch' 'sid')
+# 正则...
 if [[ ! "${valid_releases[*]}" =~ (^|[^[:alpha:]])$release([^[:alpha:]]|$) ]]; then
+    # 那大概就是干这个的
     echo "Invalid release ${release}, valid ones are: ${valid_releases[*]}"
     exit 1
 fi
@@ -683,26 +711,31 @@ else
     num_tty=4
 fi
 
+# 终于干正事了
 install_debian "$rootfs" "$release" "$arch" "$LXC_CACHE_PATH"
 if [ $? -ne 0 ]; then
     echo "failed to install debian"
     exit 1
 fi
 
+# 嗯嗯
 configure_debian "$rootfs" "$name" $num_tty
 if [ $? -ne 0 ]; then
     echo "failed to configure debian for a container"
     exit 1
 fi
 
+# 好的
 copy_configuration "$path" "$rootfs" "$name" $arch $num_tty
 if [ $? -ne 0 ]; then
     echo "failed write configuration file"
     exit 1
 fi
 
+# 嗯嗯
 configure_debian_systemd "$path" "$rootfs" "$config" $num_tty
 
+# 看完了...
 post_process "${rootfs}" "${release}" "${arch}" "${hostarch}" "${packages}"
 
 if [ ! -z "$clean" ]; then
