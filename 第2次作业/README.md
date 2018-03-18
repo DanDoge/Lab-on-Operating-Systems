@@ -78,37 +78,37 @@ if(  cgroup_add_value_int64(cgc_memory, "memory.limit_in_bytes", MEMORY_LIMIT)){
 
 修改cpu为1核心只需要把"0-1"改成"0".
 
-完整的代码[链接](/src/fakeContainer.c)
+完整的代码[链接](./src/fakeContainer.c)
 
 #### 压力测试
 
 ###### cpu 1核
 
-![](/pictures/lab2_cpu_1core_8process.png)
+![](./pictures/lab2_cpu_1core_8process.png)
 
 修改cpu部分的代码, 发现容器确实只使用了一个核
 
 ###### cpu 2核
 
-![](/pictures/lab2_cpu_2core_1process.png)
+![](./pictures/lab2_cpu_2core_1process.png)
 
 单进程, 只使用一个核
 
-![](/pictures/lab2_cpu_2core_2process.png)
+![](./pictures/lab2_cpu_2core_2process.png)
 
 多进程, 使用了两个核, 因为这台机器只有两个核, 再测试下去似乎看不出是否限制成功
 
 ###### mem 512m
 
-![](/pictures/lab2_mem_200m.png)
+![](./pictures/lab2_mem_200m.png)
 
 使用200m内存, 没有达到内存限制, 容器照常运行
 
-![](/pictures/lab2_mem_512m.png)
+![](./pictures/lab2_mem_512m.png)
 
 使用达到内存限制, 发现此时占用宿主机的~25%内存
 
-![](/pictures/lab2_mem_800m.png)
+![](./pictures/lab2_mem_800m.png)
 
 超过内存限制, 容器照常运行, 仍只占用约25%的内存.
 
