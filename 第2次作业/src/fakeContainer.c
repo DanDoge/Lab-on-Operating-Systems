@@ -96,27 +96,36 @@ struct cgroup*  cgroup_control(pid_t pid){
         printf("Error add controller %s\n", cgroup_strerror(ret));
         goto out;
     }
-
-    //限制只能使用0和1号cpu
-    if (  cgroup_add_value_string(cgc_cpuset, "cpuset.cpus", "0-1") ){
+    /*
+        //限制只能使用0和1号cpu
+        if (  cgroup_add_value_string(cgc_cpuset, "cpuset.cpus", "0-1") ){
+            printf("Error limit cpuset cpus.\n");
+            goto out;
+        }
+    */
+    // 这样就只用一个核心了
+    if (  cgroup_add_value_string(cgc_cpuset, "cpuset.cpus", "0") ){
         printf("Error limit cpuset cpus.\n");
         goto out;
     }
 
-    // TODO:添加cgroup memory子系统，设置内存上限为512MB
+    // TODO:添加cgroup memory子系统，设置内存上限为512MB ==> DONE
     /*  Time:      03/14  11:19
      *  reference: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
      *             http://libcg.sourceforge.net/html/index.html
-     *  not tested, and i havn't read document...
+     *  tested, and works.
      */
     struct cgroup_controller *cgc_memory = cgroup_add_controller(cgroup, "memory");
     if(  !cgc_memory ){
-        /* what's ECGINVAL? */
+        /* what's ECGINVAL?
+         * Represents error coming from other libraries like glibc.
+         * reference: http://libcg.sourceforge.net/html/group__group__errors.html
+         */
         ret = ECGINVAL;
         printf("Error add controller %s\n", cgroup_strerror(ret));
         goto out;
     }
-    /* should i choose this function? */
+    /* should i choose this function? ==> yes, at least it works. */
     if(  cgroup_add_value_int64(cgc_memory, "memory.limit_in_bytes", MEMORY_LIMIT)){
         printf("Error limit memory.\n");
         goto out;

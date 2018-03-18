@@ -50,19 +50,73 @@
 
 #### 代码
 
-我觉得是对的...至少结果确实限制住内存了
+增加了限制内存的代码
+
+```c
+// TODO:添加cgroup memory子系统，设置内存上限为512MB ==> DONE
+/*  Time:      03/14  11:19
+ *  reference: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
+ *             http://libcg.sourceforge.net/html/index.html
+ *  tested, and works.
+ */
+struct cgroup_controller *cgc_memory = cgroup_add_controller(cgroup, "memory");
+if(  !cgc_memory ){
+    /* what's ECGINVAL?
+     * Represents error coming from other libraries like glibc.
+     * reference: http://libcg.sourceforge.net/html/group__group__errors.html
+     */
+    ret = ECGINVAL;
+    printf("Error add controller %s\n", cgroup_strerror(ret));
+    goto out;
+}
+/* should i choose this function? ==> yes, at least it works. */
+if(  cgroup_add_value_int64(cgc_memory, "memory.limit_in_bytes", MEMORY_LIMIT)){
+    printf("Error limit memory.\n");
+    goto out;
+}
+```
+
+修改cpu为1核心只需要把"0-1"改成"0".
+
+完整的代码[链接](/src/fakeContainer.c)
 
 #### 压力测试
 
-四张图片
+###### cpu 1核
 
-内存是被限制住的, 在这次测试中进程也没有被杀死, 乖乖去读文档吧
+![](/pictures/lab2_cpu_1core_8process.png)
+
+修改cpu部分的代码, 发现容器确实只使用了一个核
+
+###### cpu 2核
+
+![](/pictures/lab2_cpu_2core_1process.png)
+
+单进程, 只使用一个核
+
+![](/pictures/lab2_cpu_2core_2process.png)
+
+多进程, 使用了两个核, 因为这台机器只有两个核, 再测试下去似乎看不出是否限制成功
+
+###### mem 512m
+
+![](/pictures/lab2_mem_200m.png)
+
+使用200m内存, 没有达到内存限制, 容器照常运行
+
+![](/pictures/lab2_mem_512m.png)
+
+使用达到内存限制, 发现此时占用宿主机的~25%内存
+
+![](/pictures/lab2_mem_800m.png)
+
+超过内存限制, 容器照常运行, 仍只占用约25%的内存.
 
 #### 讨论
 
-cgroup文档中描述的是, 如果内存使用超过设定的限制, 会先执行回收程序(LRU)尝试回收内存, 如果失败的话, 则占用内存最高的程序会被杀死
+cgroup文档中描述的是, 如果内存使用超过设定的限制, 会先执行回收程序(使用LRU)尝试回收内存, 如果失败的话, 则占用内存最高的程序会被杀死
 
-用stress中内存压力测试是不断分配内存写'z', (至少这次实验)没有出现程序被杀死的情况
+用stress中内存压力测试是不断分配内存写'z', 至少这次实验没有出现程序被杀死的情况
 
 ```c
 int
@@ -87,7 +141,7 @@ hogvm (long long bytes, long long stride, long long hang, int keep)
             do_malloc = 0;
         }
 
-
+        /* 略去一些写z的代码 */
 
         for (i = 0; i < bytes; i += stride)
         {
@@ -102,7 +156,9 @@ hogvm (long long bytes, long long stride, long long hang, int keep)
 }
 ```
 
-文档中描述了当内存限制很小的时候,  会出现程序被杀死的情况, 但是还没有复现 (**需要实验**)
+文档中描述了当内存限制很小的时候,  会出现程序被杀死的情况, 但是还没有复现
+
+事实上内存限制到1m也可以跑....(**接着做实验**)
 
 ## lab1代码的完善
 
@@ -122,4 +178,4 @@ lab1的代码并没有设置资源的限制, 理论上容器运行的程序可�
 
 所以可能需要添加代码来限制容器能使用的内存, cpu数量和网络等其他的资源.
 
-###### last modified date: 03/17
+###### last modified date: 03/18
