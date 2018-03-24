@@ -2,7 +2,7 @@
 
 ## 说明任意linux发行版的roofs制作流程
 
-阅读的是lxc-Debian
+阅读的是[lxc-Debian](./src/lxc-debian)
 
 #### install_debian
 
@@ -22,13 +22,13 @@
 
 配置系统语言
 
-生成新的ssh key(**没看懂**)
+生成新的ssh key, 配置dpkg
 
 设置时区
 
 #### copy_configuration
 
-确保有一个hwaddr, 把容器的配置信息写到rootfs外的配置文件里面(**需要确认**)
+确保有一个hwaddr, 把容器的配置信息写到rootfs外的配置文件里面.
 
 #### configure_debian_systemd
 
@@ -158,7 +158,18 @@ hogvm (long long bytes, long long stride, long long hang, int keep)
 
 文档中描述了当内存限制很小的时候,  会出现程序被杀死的情况, 但是还没有复现
 
-事实上内存限制到1m也可以跑....(**接着做实验**)
+事实上内存限制到1m也可以跑....
+
+推测这时利用了swap区域, 事实上swap利用率确实上升了
+
+![](./pictures/lab2_mem_800m_swap.png)
+
+stress程序运行之后, 发现swap利用的大小趋近800m
+
+[cgroup-v1文档](https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt)
+中提到"memory.memsw.limit_in_bytes"可以限制mem + swap的空间, 但是这个api已经没有了.
+
+[cgroup-v2文档](https://www.kernel.org/doc/Documentation/cgroup-v2.txt)中可以直接操作swap空间.
 
 ## lab1代码的完善
 
@@ -170,12 +181,28 @@ lab1的初始代码中没有考虑很多可能失败的地方(比方说创建/�
 
 lxc访问容器可以通过lxc-attach, lxc-console来访问容器
 
-但是lab1中只涉及把硬编码的函数调给容器, 既不能访问容器的shell, 也没有涉及传递个性化的参数和函数, 这是可以加以改进的地方.
+但是lab1中只涉及把硬编码的函数调给容器, 既不能访问容器的shell(但利用python api是可以做到的), 也没有涉及传递个性化的参数和函数, 这是可以加以改进的地方.
 
 #### 资源隔离
 
-lab1的代码并没有设置资源的限制, 理论上容器运行的程序可以耗尽宿主机的内存
+lab1的代码并没有设置资源的限制, 理论上容器运行的程序可以耗尽宿主机的内存等资源
 
 所以可能需要添加代码来限制容器能使用的内存, cpu数量和网络等其他的资源.
 
-###### last modified date: 03/18
+#### 没有完全解决的问题
+
+pid: lab2中, "容器"(fakeContainer)的1号进程是bash, 宿主机的1号进程是systemd
+
+![](./pictures/lab2_pid.png)
+
+而lab1中容器(也就是lxc容器)1号进程是systemd
+
+![](./pictures/lab1_pid_container.png)
+
+如果作业中的"lab 1"指的是"第一次作业"的话, 这一点上似乎不用改进, 因为它本身基于lxc
+
+而若是"第二次作业"的话, 可能要考虑需求(比如说需要容器隔离健壮, 或者需要容器简单轻便)来决定是否需要在容器中构建比较完整的进程结构.
+
+网络栈: 在lxc-debian中提到了"dhcp"...(但是不是很懂), lab 1中的容器应该和lxc一致, 当然lab 2的容器还不能访问网络...
+
+###### last modified date: 03/24

@@ -161,9 +161,9 @@ EOF
         if [ -f "$rootfs/etc/init/ssh.conf" ]; then
             mv "$rootfs/etc/init/ssh.conf" "$rootfs/etc/init/ssh.conf.disabled"
         fi
-        # 164-167 没看懂
+        # 好像是在配置dpkg....
         rm -f "$rootfs/etc/ssh/"ssh_host_*key*
-
+        # 这是三句话吧...
         DPKG_MAINTSCRIPT_PACKAGE=openssh DPKG_MAINTSCRIPT_NAME=postinst chroot "$rootfs" /var/lib/dpkg/info/openssh-server.postinst configure
         # 做一个文本替换
         sed -i "s/root@$(hostname)/root@$hostname/g" "$rootfs/etc/ssh/"ssh_host_*.pub
@@ -172,7 +172,7 @@ EOF
             # 又写回去了
             mv "$rootfs/etc/init/ssh.conf.disabled" "$rootfs/etc/init/ssh.conf"
         fi
-        # 删了? 喵喵喵?
+        # 删了? 喵喵喵? ==> 似乎没有问题呢
         rm -f "$rootfs/usr/sbin/policy-rc.d"
     fi
 

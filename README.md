@@ -18,10 +18,10 @@
  - [x] 阅读rootfs制作脚本, 说明制作流程
     - [x] 阅读debian制作脚本
     - [x] 说明制作流程
- - [ ] 完善fakeContainer.c, 添加cgroup子系统, 资源上限1核心, 512MB. 自选压力测试程序. 讨论内存占用超出时, 是否会kill掉
+ - [x] 完善fakeContainer.c, 添加cgroup子系统, 资源上限1核心, 512MB. 自选压力测试程序. 讨论内存占用超出时, 是否会kill掉
     - [x] 完善fakeContainer.c
     - [x] 自选压力测试
-    - [ ] 讨论内存超出(**需要复现杀死进程的情况**)
+    - [x] 讨论内存超出
  - [x] lab1的代码方面的提高
 
-###### last modified date: 2018-03-18
+###### last modified date: 2018-03-24
