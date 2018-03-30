@@ -24,4 +24,17 @@
     - [x] 讨论内存超出
  - [x] lab1的代码方面的提高
 
-###### last modified date: 2018-03-24
+## Lab3
+
+ - [ ]叙述linux网络包处理流程
+ - [ ]使用iptables实现以下功能
+     - [ ]拒绝某一ip的访问
+     - [ ]只开放本机的http和ssh服务, 拒绝所有其他协议和端口
+     - [ ]拒绝回应某一个ip的ping
+ - [ ]解释路由和交换的区别, 介绍bridge veth的工作原理
+ - [ ]改进fakeContainer
+    - [ ]能够访问internet
+    - [ ]部署能够访问的nginx服务器
+    - [ ]解释外部访问web服务的过程中, 网络包在服务器上经过了什么
+
+###### last modified date: 2018-03-30
