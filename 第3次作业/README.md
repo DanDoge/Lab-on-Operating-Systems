@@ -59,3 +59,23 @@
 |  |  |  |  
 
 ##### 路由和交换的区别
+
+
+### 改进fakeContainer
+
+##### 实现课件上的网络结构
+
+![](./pic/network_config.png)
+
+这算是做完了么...host去ping容器是可以的
+
+###### 参考
+
+[容器分配静态ip](https://www.cnblogs.com/mosmith/p/5372326.html)
+
+##### 能够访问internet
+
+
+
+
+[添加网卡的参考](https://cloud.tencent.com/developer/article/1044329)
