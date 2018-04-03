@@ -30,7 +30,9 @@
 ###### 参考
 
  [解释connection tracking的一个网站](http://wiki.netfilter.org/pablo/docs/login.pdf)
+
  [讲义原图的网站](https://www.booleanworld.com/depth-guide-iptables-linux-firewall/)
+
  [比较详细解释过程的图片](https://mikrotik.com/testdocs/ros/2.9/img/packet_flow31.jpg)
 
 
@@ -56,26 +58,94 @@
 | 属性 | 路由 | 交换 |
 | - | :-: | -: |
 | 层级 | 主要第三层, 针对ip | 主要第二层, 针对mac |
-|  |  |  |  
+|  |  |  |
 
 ##### 路由和交换的区别
 
 
 ### 改进fakeContainer
 
+其中使用的[命令](./src/script.sh)
+
 ##### 实现课件上的网络结构
+
+```shell
+# 主机内
+
+# pid为容器的pid
+ln -s /proc/$pid/ns/net /var/run/netns/$pid
+
+brtcl addbr bridge_0
+
+ifconfig bridge_0 $bridge netmask 255.255.255.0 up
+
+ip link add vethB type veth peer vethC
+
+brctl addif bridge_0 vethB
+
+ifconfig vethB up
+
+ip link set vethC netns $pid
+
+ip netns $pid exec ifconfig vethC $container netmask 255.255.255.0
+
+# 至此, 网络结构应该是建立完毕了
+
+# 容器内
+
+ip route add default dev eth0
+
+```
 
 ![](./pic/network_config.png)
 
 这算是做完了么...host去ping容器是可以的
 
+设置路由之后, 主机和容器互相能ping通
+
+![](./pic/network_ping_test.png)
+
+
 ###### 参考
 
 [容器分配静态ip](https://www.cnblogs.com/mosmith/p/5372326.html)
 
+[添加网卡的参考](https://cloud.tencent.com/developer/article/1044329)
+
 ##### 能够访问internet
 
+```shell
 
+# 主机上
 
+iptables -t nat -A POSTROUTING -s $container -j SNAT --to $host
 
-[添加网卡的参考](https://cloud.tencent.com/developer/article/1044329)
+# 容器内
+
+route add default gw $host dev vethC
+```
+
+测试结果
+
+![](./pic/network_ping_public_test.png)
+
+##### 部署nginx服务器
+
+```shell
+
+# 主机内
+
+iptables -t nat -A PREROUTING -p tcp --dport $port -j DNAT --to-destination $container:80
+
+iptables -t nat -A POSTROUTING -d $container -p tcp --dport 80 -j --to $host
+```
+
+开启nginx, 主机上可以访问容器的网页
+
+![](./pic/network_local_test.png)
+
+设置端口映射, 外网可以访问容器内的网页
+
+![](./pic/network_public_test.png)
+
+##### 说明网络包的流程

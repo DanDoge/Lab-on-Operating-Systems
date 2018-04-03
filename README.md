@@ -26,15 +26,15 @@
 
 ## Lab3
 
- - [ ]叙述linux网络包处理流程
- - [ ]使用iptables实现以下功能
-     - [ ]拒绝某一ip的访问
-     - [ ]只开放本机的http和ssh服务, 拒绝所有其他协议和端口
-     - [ ]拒绝回应某一个ip的ping
+ - [x]叙述linux网络包处理流程
+ - [x]使用iptables实现以下功能(_这么写对嘛...?_)
+     - [x]拒绝某一ip的访问
+     - [x]只开放本机的http和ssh服务, 拒绝所有其他协议和端口
+     - [x]拒绝回应某一个ip的ping
  - [ ]解释路由和交换的区别, 介绍bridge veth的工作原理
  - [ ]改进fakeContainer
-    - [ ]能够访问internet
-    - [ ]部署能够访问的nginx服务器
+    - [x]能够访问internet
+    - [x]部署能够访问的nginx服务器
     - [ ]解释外部访问web服务的过程中, 网络包在服务器上经过了什么
 
 ###### last modified date: 2018-03-30
