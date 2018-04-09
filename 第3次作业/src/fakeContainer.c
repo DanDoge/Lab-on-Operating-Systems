@@ -167,7 +167,7 @@ int main() {
 
     struct cgroup* cg = cgroup_control(child_pid);
 
-    // 鸽了...明天写回来
+    // 鸽了...彻底鸽了
     char tmp[16] = "pid=";
     char pid[8] = {};
     sprintf(pid, "%d", child_pid);
@@ -179,6 +179,7 @@ int main() {
     system("brctl addif br0 veth0");
     system("ip link set veth0 up");
     system("ip link set veth1 netns $pid");
+    // 地下四行还不大对..可能
     system("ip netns exec $pid ip link set dev veth1 name eth0");
     system("ip netns exec $pid ip link set eth0 up");
     system("ip netns exec $pid ip addr $ip/24 dev eth0");
