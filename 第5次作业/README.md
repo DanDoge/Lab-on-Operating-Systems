@@ -124,3 +124,39 @@ host{
 [没有fuse的解决方法](https://www.claudiokuenzler.com/blog/501/mount-glusterfs-volume-lxc-container-dev-fuse-no-such-file#.Wu1eqoiFPIU)
 
 ### 为lxc提供镜像服务
+
+#### 手动模拟
+
+首先将现有的一个容器拷贝到另一个不同名文件夹, 修改config的内容(包括容器名称, ip地址, veth对端名称), 发现就可以安装一个新的容器了
+
+所以我们接下来要实现的就是
+ - 使用aufs构建镜像而不是完全拷贝所有文件
+ - 用脚本模拟手动修改config的过程
+
+#### aufs构建镜像
+
+```shell
+mount -t aufs -o br=${diff}=rw:${HOME}=ro none /var/lxc/${cont_name}
+```
+
+用已知的一个容器做为共享的文件, 把新的容器修改的部分存放到diff文件夹下, 经测试也是可行的
+
+![](./pic/aufs_test_1.png)
+
+###### 用lab5test302作为修改了的文件夹, 发现容器正常工作, 也成功记录了修改的内容
+
+#### shell脚本
+
+暂时的脚本在[这里](./src/aufs_shell.sh)
+
+测试的结果
+
+![](./pic/aufs_test_2.png)
+
+######
+
+###### to-do
+
+如果第一次安装容器怎么办?
+
+diff文件夹统一放到别的地方, 否则lxc-ls会看见它们
