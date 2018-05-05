@@ -79,4 +79,48 @@ GlusterFS是在用户空间工作的软件.
 
 ### 安装配置GlusterFS, 挂载到lxc容器中
 
+安装glusterfs(ubuntu)
+
+```shell
+add-apt-repository ppa:gluster/glusterfs-3.8
+apt-get update
+apt-get install glusterfs-server
+apt-get install glusterfs-client
+```
+
+添加两台服务器, 建立用于备份的文件夹
+
+![](./pic/gluster_test_1.png)
+
+在一台上建立卷, 另一台上也能看到卷的内容
+
+![](./pic/gluster_test_2.png)
+
+安装客户端, 创建文件, 服务器上也能看见
+
+![](./pic/gluster_test_3.png)
+
+写内容到文件里, 挂掉一台服务器, 文件内容还在
+
+![](./pic/gluster_test_4.png)
+
+###### 用于测试的网络结构
+
+```c
+host{
+    lab5br0(172.16.1.1){
+        // server
+        lab5test1(172.16.1.30)
+        lab5test2(172.16.1.40)
+
+        // client
+        lab5test101(172.16.1.50)
+    }
+}
+```
+
+###### 参考资料
+
+[没有fuse的解决方法](https://www.claudiokuenzler.com/blog/501/mount-glusterfs-volume-lxc-container-dev-fuse-no-such-file#.Wu1eqoiFPIU)
+
 ### 为lxc提供镜像服务
