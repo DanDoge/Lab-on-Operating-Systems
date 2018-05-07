@@ -14,7 +14,6 @@
 
 ![](./pic/raft_2.png)
 
-to-do: 能否显示数据的同步? 模拟合并的情形?
 
 #### 叙述raft处理过程
 
@@ -30,9 +29,11 @@ client只和leader通信, 提出修改(具体实现上, 可以把其他节点重
 
 client发出一个修改, 接到leader的日志的尾部, leader向所有节点广播这一个修改, 收到半数以上的回复之后, 确认修改, 返回给client
 
-##### fatal error?
+##### 脑裂(split-brain)的处理
 
-咕咕咕
+不妨认为集群分割成了两份, 其中一份数量超过半数(如果都为n / 2, 两边都不会选出leader)
+
+那么节点多的一边会选出一个leader, 并且任期号要比原来的leader高(如果它在另一边), 这样多的一边可以确认修改, 但是少的一边并不会确认修改, 直到合并后发现自己的任期号小, 回滚数据, 和现在的leader保持一致.
 
 ### 调研GlusterFS和AUFS文件系统
 
@@ -40,7 +41,7 @@ client发出一个修改, 接到leader的日志的尾部, leader向所有节点�
 
 GlusterFS是在用户空间工作的软件.
 
-各台机器之间通过TCP/IP或者infiniband之类的协议通讯, 集群之中各台机器都存有数据的一个备份, 当然如果任一个节点发生变化也要同步到所有其他的节点
+各台机器之间通过TCP/IP或者infiniband之类的协议通讯, 集群之中各台机器都存有数据的一个备份, 当然如果任一个节点发生变化也要同步到所有其他的节点(对于有些类型的卷是这样的)
 
 ![](./pic/glusterfs_1.png)
 
@@ -57,13 +58,17 @@ GlusterFS是在用户空间工作的软件.
  - stripe replicated volume, 文件分几份, 每一份备份在几个服务器上
  - distributed * volume, 上述二三四种模式可以分布式进行, 譬如说文件分几份只发到一部分服务器上
 
-###### to-do
+###### to-do --> done
 
-试一试各种卷
+试一试各种卷 --> 还行
 
 #### aufs
 
-先看看[这个](https://www.thegeekstuff.com/2013/05/linux-aufs/), 好像挺有用的
+aufs可以把几个分支合并成一个文件系统, 各个分支有不同的权限, ro, rw...命令行中一半默认第一个br是w的, 其他的是ro的
+
+aufs写文件按照copy-on-write来实现, 也就是说第一次修改文件的时候会把文件拷贝到上层(可写的层), 之后的读写都建立在上层的文件上, 如果有多个可写的分支的话, 按照指定的create_policy安排放到哪一个分支
+
+删除的话, 如果它只在rw里面, 直接删除就是了, 如果ro里面也有的话, 在上层加一个whiteout文件(.wh*)覆盖住下层的文件, 容器就看不到了
 
 简单的实验
 
@@ -77,9 +82,13 @@ GlusterFS是在用户空间工作的软件.
 
 [sfjro/aufs4-linux](https://github.com/sfjro/aufs4-linux) 752k次提交....
 
+[aufs-manpage](http://manpages.ubuntu.com/manpages/xenial/en/man5/aufs.5.html)
+
 ### 安装配置GlusterFS, 挂载到lxc容器中
 
 安装glusterfs(ubuntu)
+
+(如果安装client总是出错的话, 安装server也可以, server自带一个client)
 
 ```shell
 add-apt-repository ppa:gluster/glusterfs-3.8
@@ -92,7 +101,7 @@ apt-get install glusterfs-client
 
 ![](./pic/gluster_test_1.png)
 
-在一台上建立卷, 另一台上也能看到卷的内容
+在一台上建立复制卷, 另一台上也能看到卷的内容
 
 ![](./pic/gluster_test_2.png)
 
@@ -127,7 +136,7 @@ host{
 
 #### 手动模拟
 
-首先将现有的一个容器拷贝到另一个不同名文件夹, 修改config的内容(包括容器名称, ip地址, veth对端名称), 发现就可以安装一个新的容器了
+首先将现有的一个容器拷贝到另一个不同名文件夹, 修改config的内容(包括容器名称, ip地址, veth对端名称), 发现就安装成功一个新的容器了
 
 所以我们接下来要实现的就是
  - 使用aufs构建镜像而不是完全拷贝所有文件
@@ -153,10 +162,14 @@ mount -t aufs -o br=${diff}=rw:${HOME}=ro none /var/lxc/${cont_name}
 
 ![](./pic/aufs_test_2.png)
 
-######
+为验证这样的操作真的节省了空间, 进行实验
 
-###### to-do
+![](./pic/aufs_test_3.png)
 
-如果第一次安装容器怎么办?
+![](./pic/aufs_test_4.png)
 
-diff文件夹统一放到别的地方, 否则lxc-ls会看见它们
+发现用脚本创建容器之后, 硬盘剩余空间几乎没有变化
+
+![](./pic/aufs_test_5.png)
+
+调用lxc-create之后, 发现硬盘剩余空间明显减少, 说明确实节省了空间.
