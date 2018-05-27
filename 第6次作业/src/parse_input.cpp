@@ -34,7 +34,14 @@ int main(int argc, char *argv[]) {
     //system(cmd);
     sprintf(cmd, "sudo ./config_ip.sh %s %d", image_id, rand_ip);
     //system(cmd);
-    sprintf(cmd, "sudo lxc-attach -n %s -- %s", image_id, cmd_line);
+    sprintf(cmd, "sudo mkdir -p /var/www/shareddata/%s", jobname);
+    system(cmd);
+    system("sudo chmod -R 777 /var/www/shareddata"); // 我是个傻子
+    sprintf(cmd, "sudo touch /var/www/shareddata/%s/out.txt", jobname);
+    system(cmd);
+    sprintf(cmd, "sudo chmod -R 777 /var/lib/lxc/%s/rootfs/var/www/shareddata", image_id);
+    system(cmd);
+    sprintf(cmd, "sudo lxc-attach -n %s -- %s > /var/www/shareddata/%s/out.txt", image_id, cmd_line, jobname);
     cout << cmd << endl;
     system(cmd);
   }
