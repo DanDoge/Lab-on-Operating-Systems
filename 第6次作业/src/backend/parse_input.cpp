@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     sprintf(cmd, "/var/www/shareddata/%s/status.txt", jobname);
     ofstream out3(cmd);
-    out3 << 1 << endl; // 1 -> fail, 0 -> success
+    out3 << -1 << endl; // -1 -> 初始化失败, 0 -> 运行成功, 1 - 255 -> 运行失败
     out3.close();
 
     sprintf(cmd, "sudo chmod -R 777 /var/lib/lxc/%s/rootfs/var/www/shareddata", image_id);
@@ -76,9 +76,6 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-
-    sprintf(cmd, "sudo lxc-stop -n %s", image_id);
-    system(cmd);
 
   }
   return 0;
