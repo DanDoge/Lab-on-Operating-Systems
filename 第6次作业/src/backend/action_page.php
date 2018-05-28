@@ -119,43 +119,48 @@
         </div>
       </div>
       <div class="article-list col-sm-10">
-          <form class="form-horizontal" action="./action_page.php">
-            <div class="form-group">
-              <label class="control-label col-sm-2" for="job_name">任务名字:</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" name="job_name" placeholder="job name">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="control-label col-sm-2" for="cmd_line">命令行:</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" name="cmd_line" placeholder="command line">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="control-label col-sm-2" for="max_retry_time">最多重试次数:</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" name="max_retry_time" placeholder="max retry time">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="control-label col-sm-2" for="time_out">超时时间(ms):</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" name="time_out" placeholder="time out (ms)">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="control-label col-sm-2" for="image_id">镜像id:</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" name="image_id" placeholder="image id">
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                <button type="submit" class="btn btn-default">Submit</button>
-              </div>
-            </div>
-        </form>
+
+
+          debug messages begin <br>
+
+          <?php var_dump($_GET);
+          $job_name = $_GET['job_name'];
+          $cmd_line = $_GET['cmd_line'];
+          $max_retry_time = $_GET['max_retry_time'];
+          $time_out = $_GET['time_out'];
+          $image_id = $_GET['image_id'];
+          ?> <br>
+
+          end <br>
+
+          your jobname is <?php echo $job_name; ?> <br>
+          command line is: <?php echo $cmd_line; ?> <br>
+          max retry time is: <?php echo $max_retry_time; ?> <br>
+          time limit is: <?php echo $time_out; ?> <br>
+          image id is: <?php echo $image_id; ?> <br>
+
+          debug messages begin <br>
+
+          <?php
+          echo "/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id";
+
+          echo "<br>";
+
+          echo `/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id`;
+
+          echo "<br>";
+
+          echo `pwd`;
+
+          echo "<br>";
+
+          system("/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id", $status);
+           ?> <br>
+
+
+          end <br>
+
+          
       </div>
     </div>
   </div>
