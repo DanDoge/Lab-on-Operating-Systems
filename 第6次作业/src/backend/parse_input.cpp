@@ -7,7 +7,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
   ofstream out1("out.txt");
-  if(argc < 6){
+  if(argc < 8){
     cerr << "lose some parameters? in parse_input.cpp" << endl;
     out1 << "lose some parameters? in parse_input.cpp" << endl;
     out1.close();
@@ -17,21 +17,28 @@ int main(int argc, char *argv[]) {
     int max_retry_time = atoi(argv[3]);
     int time_out = atoi(argv[4]);
     char* image_id = argv[5];
+    char* cpu_limit = argv[6];
+    char* mem_limit = argv[7];
 
     out1 << "jobname is " << jobname << endl;
     out1 << "cmd_line is " << cmd_line << endl;
     out1 << "max_retry_time is " << max_retry_time << endl;
     out1 << "time_out is " << time_out << endl;
     out1 << "image_id is " << image_id << endl;
+    out1 << "cpuset is " << cpu_limit << endl;
+    out1 << "mem limit is " << mem_limit << endl;
     out1.close();
 
     char cmd[1024] = {};
 
+    // set up working dir for this job
     sprintf(cmd, "sudo mkdir -p /var/www/shareddata/%s", jobname);
     system(cmd);
 
+    // becouse we are "www-data" now
     system("sudo chmod -R 777 /var/www/shareddata");
 
+    // set up out file, config file, status file
     sprintf(cmd, "sudo touch /var/www/shareddata/%s/out.txt", jobname);
     system(cmd);
 

@@ -129,6 +129,8 @@
           $max_retry_time = $_GET['max_retry_time'];
           $time_out = $_GET['time_out'];
           $image_id = $_GET['image_id'];
+          $cpu_limit = $_GET['cpu_limit'];
+          $mem_limit = $_GET['mem_limit'];
           ?> <br>
 
           end <br>
@@ -136,17 +138,19 @@
           your jobname is <?php echo $job_name; ?> <br>
           command line is: <?php echo $cmd_line; ?> <br>
           max retry time is: <?php echo $max_retry_time; ?> <br>
+          cpu set is: <?php echo $cpu_limit ?> <br>
+          memory limit is <?php echo $mem_limit ?> <br>
           time limit is: <?php echo $time_out; ?> <br>
           image id is: <?php echo $image_id; ?> <br>
 
           debug messages begin <br>
 
           <?php
-          echo "/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id";
+          echo "now executing... /var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit";
 
           echo "<br>";
 
-          echo `/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id`;
+          echo `/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit`;
 
           echo "<br>";
 
@@ -154,13 +158,12 @@
 
           echo "<br>";
 
-          system("/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id", $status);
            ?> <br>
 
 
           end <br>
 
-          
+
       </div>
     </div>
   </div>
