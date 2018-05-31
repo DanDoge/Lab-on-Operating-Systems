@@ -146,11 +146,11 @@
           debug messages begin <br>
 
           <?php
-          echo "now executing... /var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit";
+          echo "now executing... python /var/www/master.py $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit";
 
           echo "<br>";
 
-          echo `/var/www/a.out $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit`;
+          echo `python /var/www/master.py $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit`;
 
           echo "<br>";
 
