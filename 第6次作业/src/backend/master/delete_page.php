@@ -119,51 +119,28 @@
         </div>
       </div>
       <div class="article-list col-sm-10">
+          <form class="form-horizontal" action="./query_page.php">
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="job_name">任务名字:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" name="job_name" placeholder="job name">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-default">Submit</button>
+              </div>
+            </div>
+
+            <?php
+                $job_name = $_GET['job_name'];
+                echo `python /var/www/master.py "delete" $job_name`;
+                echo "<br>";
+            ?>
 
 
-          debug messages begin <br>
-
-          <?php var_dump($_GET);
-          $job_name = $_GET['job_name'];
-          $cmd_line = $_GET['cmd_line'];
-          $max_retry_time = $_GET['max_retry_time'];
-          $time_out = $_GET['time_out'];
-          $image_id = $_GET['image_id'];
-          $cpu_limit = $_GET['cpu_limit'];
-          $mem_limit = $_GET['mem_limit'];
-          ?> <br>
-
-          end <br>
-
-          your jobname is <?php echo $job_name; ?> <br>
-          command line is: <?php echo $cmd_line; ?> <br>
-          max retry time is: <?php echo $max_retry_time; ?> <br>
-          cpu set is: <?php echo $cpu_limit ?> <br>
-          memory limit is <?php echo $mem_limit ?> <br>
-          time limit is: <?php echo $time_out; ?> <br>
-          image id is: <?php echo $image_id; ?> <br>
-
-          debug messages begin <br>
-
-          <?php
-          echo "now executing... python /var/www/master.py $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit";
-
-          echo "<br>";
-
-          echo `python /var/www/master.py "add" $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit`;
-
-          echo "<br>";
-
-          echo `pwd`;
-
-          echo "<br>";
-
-           ?> <br>
-
-
-          end <br>
-
-
+        </form>
       </div>
     </div>
   </div>

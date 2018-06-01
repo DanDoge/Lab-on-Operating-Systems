@@ -58,6 +58,14 @@ class deamon_server(object):
                         break;
         return 0;
 
+    def delete(self, job_name):
+        with open("/var/www/shareddata/%s/config.txt" % job_name, "r") as fp:
+            image_id = fp.read();
+        print(image_id);
+        print(job_name);
+        os.system("lxc-stop -n %s" % job_name);
+        os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? rm -rf
+
 
 server = msgpackrpc.Server(deamon_server())
 server.listen(msgpackrpc.Address("localhost", 8080));
