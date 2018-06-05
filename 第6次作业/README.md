@@ -4,23 +4,62 @@
 
 - 用户自定义输入
     - 执行任务的命令行
-    - 超时时间
-    - 失败重试
-    - 自主选择镜像
+    - 设定超时时间
+    - 失败重试次数
     - 输出文件重定向
 - 可视化
     - 设计提交界面, 用户通过填写表格提交任务
     - 设计查询界面, 用户填写任务名称查询状态
 - 任务管理
     - 通过维护状态文件, 查询管理任务状态
+    - 后台查看调用情况
 
 ### 现行架构
 
 用户同前端交互, 提交任务后, [php文件](./src/backend/action_page.php)执行[master进程](./src/backend/master/master.py), 通过rpc方式, 将任务分发给slave节点上的[deamon进程](./src/backend/slave/slave.py), 执行任务.
 
-全过程中维护gfs上的/shareddata/job_name/status.txt, /shareddata/$job_name/config.txt, 并将输出重定向至/shareddata/job_name/out.txt
+全过程中维护gfs上的/shareddata/job_name/status.txt, /shareddata/job_name/config.txt, 并将输出重定向至/shareddata/job_name/out.txt
 
 任务状态暂时通过读取/shareddata/job_name/status.txt实现, 初始化为-1, 表示还在pending, 退出码0为成功, 其他值表示失败
+
+![](./pic/design.jpg)
+
+### 实验结果
+
+创建任务: 输出hello world
+
+![](./pic/create_job.jpg)
+
+创建成功的返回值
+
+![](./pic/create_job_log.jpg)
+
+查询状态
+
+![](./pic/query_job.jpg)
+
+删除任务, 和后台的log
+
+![](./pic/delete_job.jpg)
+
+创建任务: 运行用户的文件
+
+![](./pic/create_job_with_path.jpg)
+
+查询状态
+
+![](./pic/query_job_with_file.jpg)
+
+### 评测
+
+- 性能主要的瓶颈在通信层面上, 无论是glusterfs还是rpc都会有一定的延迟, 不能对通讯时间有假设.
+- 为节约执行任务时间, 暂时不会主动关闭容器(因重启和重启之后的配置耗时比较长), 此后可能需要根据具体的使用场景分析, 如果需要关闭容器的话, 需要
+    - 在用户需要删除的时候关闭容器
+    - 在启动任务的时候重新搭建glusterfs
+- 出于管理方便, 容器理应是临时构造的镜像(比如使用lab5的脚本), 但这一台机器上aufs还不能用, 实现上只有有限台容器(但这样调用速度会加快, 需要取舍)
+- 目前master和slave在同一台物理机上, 但如果迁移开也只需要改动ip地址就好
+- 判断是否成功调用/是否超时, 暂时不根据任务是否执行完成, 同样需要考虑执行长任务的问题
+- 如果需要拓展到有多个节点, 可以考虑考虑把任务优先调配到负载最小的节点; 或者round-robin调度(这样节省流量, 和通信上的时间)
 
 ### 具体实现
 
@@ -32,7 +71,7 @@
 
 ![](./pic/frontend_home_page.jpg)
 
-提交任务后, 跳转到提交界面(尚未完成)
+提交任务后, 跳转到提交界面(旧的界面)
 
 ![](./pic/frontend_submit_page.jpg)
 
@@ -42,9 +81,9 @@
 
 ![](./pic/frontend_query_page.jpg)
 
-删除任务
+[删除任务](http://47.93.217.74/delete.html)
 
-这个真的还没写....
+![](./pic/frontend_delete_page.jpg)
 
 #### master节点上的实现
 
@@ -125,7 +164,6 @@ slave端运行rpc的server准备接受调度到它的任务
 
 # lxc 在本机不能用, 暂时通过shell实现
 
-# 创建这个任务的文件夹
 os.system("mkdir -p /var/www/shareddata/%s" % jobname);
 print("mkdir -p /var/www/shareddata/%s" % jobname);
 
@@ -137,17 +175,20 @@ print("touch /var/www/shareddata/%s/out.txt" % jobname);
 print("touch /var/www/shareddata/%s/config.txt" % jobname);
 print("touch /var/www/shareddata/%s/status.txt" % jobname);
 
-# 初始化
 with open("/var/www/shareddata/%s/config.txt" % jobname, "w") as fp:
     print("writing config file...");
     fp.write(image_id);
+
+with open("/var/www/shareddata/%s/out.txt" % jobname, "w") as fp:
+    print("writing output file...");
+    fp.write("something must be wrong if you see this!");
 
 with open("/var/www/shareddata/%s/status.txt" % jobname, "w") as fp:
     print("writing status file...");
     fp.write("-1");
     print("done");
+    time.sleep(1);
 
-# 启动容器, 限制资源
 print("lxc-start -n %s" % image_id);
 os.system("lxc-start -n %s" % image_id);
 print("lxc-start -n %s" % image_id);
@@ -157,14 +198,13 @@ os.system("lxc-cgroup -n %s memory.limit_in_bytes \"%s\" " % (image_id, mem_limi
 print("lxc-cgroup -n %s cpuset.cpus \"%s\" " % (image_id, cpu_limit) );
 print("lxc-cgroup -n %s memory.limit_in_bytes \"%s\" " % (image_id, mem_limit) );
 
-# 循环调用直至成功
 print(max_retry_time);
 if max_retry_time > 0:
     now_try_time = 0;
     while now_try_time < max_retry_time:
         now_try_time += 1;
-        print("lxc-attach -n %s -- %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt" % (image_id, cmd_line, jobname, jobname) );
-        os.system("lxc-attach -n %s -- %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt" % (image_id, cmd_line, jobname, jobname) );
+        print("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
+        os.system("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
 
         time.sleep(time_out);
 
@@ -173,127 +213,22 @@ if max_retry_time > 0:
             if status_now == 0:
                 break;
 return 0;
+```
+
+删除任务暂时只是删除任务的文件(总假定运行的是短任务, 为下一次运行节省启动容器的时间)
+
+```python
+with open("/var/www/shareddata/%s/config.txt" % job_name, "r") as fp:
+    image_id = fp.read();
+print(image_id);
+print(job_name);
+os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? a 'rm -rf' here!
 
 ```
 
-### 改进地方
-
-- 容器应该在创建任务时构造镜像, 使用lab5的脚本, 但因为这台机器上aufs挂掉了, 实现上是只有有限个容器的(但是临时创建镜像的时间开销可能不小...)
-- 如果只有有限台容器, 一台上面跑太多任务? ==> 锅丢给用户吧
-- 除非用户主动删除任务, 现在不会主动删, 超时就删? 将来要支持起服务器(事实上在master-slave分离之前是可行的)
-- 用户乱输数据怎么办?
-- 逻辑问题: sleep 10 && echo hi!, 限时5s, 跑4次, 应该关容器吗? service nginx start呢? 执行成功是指成功调用还是成功返回? "用户的退出值"? 可能要看情况了, 这里还是把锅扔给用户...他去删任务, 关容器...有镜像就省事了...容器随便起
-- 目前master和slave在同一个物理机上, 但没有逻辑的问题, 分开只需要改master的代码就行
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 进度
-
-05-20 输入任务, [测试界面](http://47.93.217.74/oslab.html), [结果](http://47.93.217.74/out.txt)
-
-### 测试
-
-05-20
-
-输入
-
-![](./pic/test0520_1.jpg)
-
-php输出
-
-![](./pic/test0520_2.jpg)
-
-cpp输出
-
-![](./pic/test0520_3.jpg)
-
-05-25
-
-镜像脚本不work了....惊了 ==> 因为我是智障...在Linux里用\\r...把/var/lib/lxc删了...
-
-php提权? ==> 用sudo就行...
-
-进程状态怎么办?
-
-05-25
-
-aufs用不了了....暂时不能随时创建镜像...
-
-glusterfs & 输出重定向做完了...?
-
-进程状态怎么办?
-
-(这就不是master-slave架构的吧...但是不会http只能这样...或者把容器扔到gre对端...假装是slave)
-
-![](./pic/test0527_1.jpg)
-
-![](./pic/test0527_2.jpg)
-
-![](./pic/test0527_3.jpg)
-
-![](./pic/test0527_4.jpg)
-
-05-28
-
-用文件存状态, 输出, 退出码
-
-加了一个querypage
-
-![](./pic/test0528_1.jpg)
-
-![](./pic/test0528_2.jpg)
-
-restapi好像不能解决不会写daemon的问题...
-
-端口映射到$host:1926
-
-aufs用不了怎么办....之前镜像的容器也没有了...
-
-05-31
-
-rpc c++ 编译不了啊.... ==> python能用就行...
-
-### 坑
-
-创建任务的时候启动容器, 创建文件夹; 销毁任务的时候关闭容器, 删除文件夹
-
-写文件之前先赋权
-
-iptables用-A添加的规则用-D原封不动删掉
-
-### 已知bug
-
- - 命令行有空格请务必用双引号包裹
- - 任务名不要中文编码(主要是txt那里的问题)
- - 一用aufs就死机...lxc就不能用...就要回档...还不知道回到哪一天...
- - 回档之后apache要重启
+#### 坑
+
+- 没有fuse起不了glusterfs? mknod /dev/fuse c 10 229
+- lxc-attach不能用cd? /bin/bash -c ''
+- iptables用-A添加的规则用-D原封不动删掉
+- 部分实验的结果在timeline.md中
