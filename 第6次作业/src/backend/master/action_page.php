@@ -131,6 +131,7 @@
           $image_id = $_GET['image_id'];
           $cpu_limit = $_GET['cpu_limit'];
           $mem_limit = $_GET['mem_limit'];
+          $path_to_file = $_GET['path_to_file'];
           ?> <br>
 
           end <br>
@@ -142,19 +143,57 @@
           memory limit is <?php echo $mem_limit ?> <br>
           time limit is: <?php echo $time_out; ?> <br>
           image id is: <?php echo $image_id; ?> <br>
+          <table class="table">
+              <tbody>
+                <tr>
+                  <td>任务名</td>
+                  <td>
+                  <?php echo $job_name ?></td>
+                </tr>
+                <tr>
+                  <td>命令行</td>
+                  <td>
+                  <?php echo $cmd_line ?></td>
+                </tr>
+                <tr>
+                  <td>重试次数</td>
+                  <td>
+                  <?php echo $max_retry_time ?></td>
+                </tr>
+                <tr>
+                  <td>超时时间</td>
+                  <td>
+                  <?php echo $time_out ?></td>
+                </tr>
+                <tr>
+                  <td>cpu限制</td>
+                  <td>
+                  <?php echo $cpu_limit ?></td>
+                </tr>
+                <tr>
+                  <td>内存限制</td>
+                  <td>
+                  <?php echo $mem_limit ?></td>
+                </tr>
+                <tr>
+                  <td>镜像id</td>
+                  <td><?php echo $image_id ?></td>
+                </tr>
+                <tr>
+                  <td>程序包路径</td>
+                  <td><?php echo $path_to_file ?></td>
+                </tr>
+              </tbody>
+          </table>
 
           debug messages begin <br>
 
           <?php
-          echo "now executing... python /var/www/master.py $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit";
+          echo "now executing... python /var/www/master.py  $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit $path_to_file";
 
           echo "<br>";
 
-          echo `python /var/www/master.py "add" $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit`;
-
-          echo "<br>";
-
-          echo `pwd`;
+          echo `python /var/www/master.py "add" $job_name $cmd_line $max_retry_time $time_out $image_id $cpu_limit $mem_limit $path_to_file`;
 
           echo "<br>";
 

@@ -119,7 +119,7 @@
         </div>
       </div>
       <div class="article-list col-sm-10">
-          <form class="form-horizontal" action="./query_page.php">
+          <form class="form-horizontal" action="./delete_page.php">
             <div class="form-group">
               <label class="control-label col-sm-2" for="job_name">任务名字:</label>
               <div class="col-sm-10">
@@ -136,7 +136,6 @@
             <?php
                 $job_name = $_GET['job_name'];
                 echo `python /var/www/master.py "delete" $job_name`;
-                echo "<br>";
             ?>
 
 

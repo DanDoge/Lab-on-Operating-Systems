@@ -141,33 +141,53 @@
                     if(file_exists($flie_name)){
                         $file_handle_code = fopen($flie_name, 'r');
                         fscanf($file_handle_code, '%d\n', $status);
-                        echo 'exit code is';
-                        echo $status;
-                        echo '    ';
-                        if($status === 0){
-                            // 用户返回了0
-                            echo 'success';
-                        }else if($status === -1){
-                            // 用户没有返回零, 或者调用失败没有覆盖初始化的1
-                            echo 'unknown';
-                        }else{
-                            echo 'failed';
-                        }
                         fclose($flie_name);
                     }else{
                         // 还没创建文件
-                        echo 'pending';
+                        echo 'pending....';
                     }
-                    echo '<br>';
                     $flie_name = '/var/www/shareddata/'.$job_name.'/config.txt';
                     $file_handle_image = fopen($flie_name, 'r');
                     $image_id = fgets($file_handle_image, 1024);
-                    echo 'image_id is';
-                    echo $image_id;
+                    fclose($flie_name);
+
+                    $flie_name = '/var/www/shareddata/'.$job_name.'/out.txt';
+                    $file_handle_output = fopen($flie_name, 'r');
+                    $out_put = fgets($file_handle_output, 1024);
+                    fclose($flie_name);
+
                 }else{
                     echo 'can not find its directory...';
                 }
             ?>
+
+            <table class="table">
+                <tbody>
+                  <tr>
+                    <td>状态</td>
+                    <td>
+                    <?php
+                    if($status === 0){
+                        // 用户返回了0
+                        echo 'success';
+                    }else if($status === -1){
+                        // 用户没有返回零, 或者调用失败没有覆盖初始化的1
+                        echo 'unknown';
+                    }else{
+                        echo 'failed';
+                    }
+                    ?></td>
+                  </tr>
+                  <tr>
+                    <td>镜像id</td>
+                    <td><?php echo $image_id ?></td>
+                  </tr>
+                  <tr>
+                    <td>输出</td>
+                    <td><?php echo $out_put ?></td>
+                  </tr>
+                </tbody>
+            </table>
 
 
         </form>

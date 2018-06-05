@@ -4,7 +4,7 @@ import sys
 import time
 
 class deamon_server(object):
-    def run(self, jobname, cmd_line, max_retry_time, time_out, image_id, cpu_limit, mem_limit):
+    def run(self, jobname, cmd_line, max_retry_time, time_out, image_id, cpu_limit, mem_limit, path_to_file):
         print(jobname);
         print(cmd_line);
         print(max_retry_time);
@@ -12,6 +12,7 @@ class deamon_server(object):
         print(image_id);
         print(cpu_limit);
         print(mem_limit);
+        print(path_to_file);
 
         os.system("mkdir -p /var/www/shareddata/%s" % jobname);
         print("mkdir -p /var/www/shareddata/%s" % jobname);
@@ -28,10 +29,15 @@ class deamon_server(object):
             print("writing config file...");
             fp.write(image_id);
 
+        with open("/var/www/shareddata/%s/out.txt" % jobname, "w") as fp:
+            print("writing output file...");
+            fp.write("something must be wrong if you see this!");
+
         with open("/var/www/shareddata/%s/status.txt" % jobname, "w") as fp:
             print("writing status file...");
             fp.write("-1");
             print("done");
+            time.sleep(1);
 
         print("lxc-start -n %s" % image_id);
         os.system("lxc-start -n %s" % image_id);
@@ -47,8 +53,8 @@ class deamon_server(object):
             now_try_time = 0;
             while now_try_time < max_retry_time:
                 now_try_time += 1;
-                print("lxc-attach -n %s -- %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt" % (image_id, cmd_line, jobname, jobname) );
-                os.system("lxc-attach -n %s -- %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt" % (image_id, cmd_line, jobname, jobname) );
+                print("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
+                os.system("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
 
                 time.sleep(time_out);
 
@@ -63,7 +69,6 @@ class deamon_server(object):
             image_id = fp.read();
         print(image_id);
         print(job_name);
-        os.system("lxc-stop -n %s" % job_name);
         os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? rm -rf
 
 
