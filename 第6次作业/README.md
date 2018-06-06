@@ -53,9 +53,6 @@
 ### 评测
 
 - 性能主要的瓶颈在通信层面上, 无论是glusterfs还是rpc都会有一定的延迟, 不能对通讯时间有假设.
-- 为节约执行任务时间, 暂时不会主动关闭容器(因重启和重启之后的配置耗时比较长), 此后可能需要根据具体的使用场景分析, 如果需要关闭容器的话, 需要
-    - 在用户需要删除的时候关闭容器
-    - 在启动任务的时候重新搭建glusterfs
 - 出于管理方便, 容器理应是临时构造的镜像(比如使用lab5的脚本), 但这一台机器上aufs还不能用, 实现上只有有限台容器(但这样调用速度会加快, 需要取舍)
 - 目前master和slave在同一台物理机上, 但如果迁移开也只需要改动ip地址就好
 - 判断是否成功调用/是否超时, 暂时不根据任务是否执行完成, 同样需要考虑执行长任务的问题
@@ -113,7 +110,7 @@ client = msgpackrpc.Client(msgpackrpc.Address("localhost", 8080))
 client.call('run', sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]);
 ```
 
-query_page的实现如下(log文件权限755, 可以读不能写)
+query_page的实现如下(log文件权限755, 可以读不能写), 在master上读取文件, 而不是放到slave节点上, 这样可以省掉一些流量和延迟
 
 ```php
 // php
@@ -163,47 +160,41 @@ slave端运行rpc的server准备接受调度到它的任务
 # python
 
 # lxc 在本机不能用, 暂时通过shell实现
+# 略去了输出语句
 
 os.system("mkdir -p /var/www/shareddata/%s" % jobname);
-print("mkdir -p /var/www/shareddata/%s" % jobname);
 
 os.system("touch /var/www/shareddata/%s/out.txt" % jobname);
 os.system("touch /var/www/shareddata/%s/config.txt" % jobname);
 os.system("touch /var/www/shareddata/%s/status.txt" % jobname);
 
-print("touch /var/www/shareddata/%s/out.txt" % jobname);
-print("touch /var/www/shareddata/%s/config.txt" % jobname);
-print("touch /var/www/shareddata/%s/status.txt" % jobname);
-
 with open("/var/www/shareddata/%s/config.txt" % jobname, "w") as fp:
-    print("writing config file...");
     fp.write(image_id);
 
 with open("/var/www/shareddata/%s/out.txt" % jobname, "w") as fp:
-    print("writing output file...");
     fp.write("something must be wrong if you see this!");
 
 with open("/var/www/shareddata/%s/status.txt" % jobname, "w") as fp:
-    print("writing status file...");
     fp.write("-1");
-    print("done");
     time.sleep(1);
 
-print("lxc-start -n %s" % image_id);
 os.system("lxc-start -n %s" % image_id);
-print("lxc-start -n %s" % image_id);
 
 os.system("lxc-cgroup -n %s cpuset.cpus \"%s\" " % (image_id, cpu_limit) );
 os.system("lxc-cgroup -n %s memory.limit_in_bytes \"%s\" " % (image_id, mem_limit) );
-print("lxc-cgroup -n %s cpuset.cpus \"%s\" " % (image_id, cpu_limit) );
-print("lxc-cgroup -n %s memory.limit_in_bytes \"%s\" " % (image_id, mem_limit) );
 
-print(max_retry_time);
-if max_retry_time > 0:
-    now_try_time = 0;
+os.system("lxc-attach -n %s -- mknod /dev/fuse c 10 229" % image_id);
+os.system("lxc-attach -n %s -- mount -t glusterfs 192.168.1.17:/shareddata /var/www/shareddata" % image_id);
+
+
+os.system("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
+time.sleep(time_out);
+if max_retry_time == 0:
+    return 0;
+elif max_retry_time > 0:
+    now_try_time = 1;
     while now_try_time < max_retry_time:
         now_try_time += 1;
-        print("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
         os.system("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
 
         time.sleep(time_out);
@@ -215,15 +206,16 @@ if max_retry_time > 0:
 return 0;
 ```
 
-删除任务暂时只是删除任务的文件(总假定运行的是短任务, 为下一次运行节省启动容器的时间)
+删除任务时关闭容器, 删除任务文件.
 
 ```python
-with open("/var/www/shareddata/%s/config.txt" % job_name, "r") as fp:
-    image_id = fp.read();
-print(image_id);
-print(job_name);
-os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? a 'rm -rf' here!
-
+def delete(self, job_name):
+    with open("/var/www/shareddata/%s/config.txt" % job_name, "r") as fp:
+        image_id = fp.read();
+    print(image_id);
+    os.system("lxc-stop -n %s" % image_id);
+    print(job_name);
+    os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? rm -rf
 ```
 
 #### 坑

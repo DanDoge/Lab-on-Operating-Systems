@@ -48,9 +48,16 @@ class deamon_server(object):
         print("lxc-cgroup -n %s cpuset.cpus \"%s\" " % (image_id, cpu_limit) );
         print("lxc-cgroup -n %s memory.limit_in_bytes \"%s\" " % (image_id, mem_limit) );
 
-        print(max_retry_time);
-        if max_retry_time > 0:
-            now_try_time = 0;
+        os.system("lxc-attach -n %s -- mknod /dev/fuse c 10 229" % image_id);
+        os.system("lxc-attach -n %s -- mount -t glusterfs 192.168.1.17:/shareddata /var/www/shareddata" % image_id);
+
+
+        os.system("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
+        time.sleep(time_out);
+        if max_retry_time == 0:
+            return 0;
+        elif max_retry_time > 0:
+            now_try_time = 1;
             while now_try_time < max_retry_time:
                 now_try_time += 1;
                 print("lxc-attach -n %s -- /bin/bash -c 'cd /var/www/shareddata%s && %s > /var/www/shareddata/%s/out.txt && echo 0 > /var/www/shareddata/%s/status.txt' " % (image_id, path_to_file, cmd_line, jobname, jobname) );
@@ -68,6 +75,7 @@ class deamon_server(object):
         with open("/var/www/shareddata/%s/config.txt" % job_name, "r") as fp:
             image_id = fp.read();
         print(image_id);
+        os.system("lxc-stop -n %s" % image_id);
         print(job_name);
         os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? rm -rf
 
