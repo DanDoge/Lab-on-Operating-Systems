@@ -78,6 +78,7 @@ class deamon_server(object):
         os.system("lxc-stop -n %s" % image_id);
         print(job_name);
         os.system("rm -rf /var/www/shareddata/%s" %job_name); # am i right...? rm -rf
+        return 0;
 
 
 server = msgpackrpc.Server(deamon_server())

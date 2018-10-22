@@ -136,6 +136,10 @@
             <?php
                 $job_name = $_GET['job_name'];
                 echo `python /var/www/master.py "delete" $job_name`;
+                echo "<br>"
+                echo "debug: python /var/www/master.py \"delete\" $job_name";
+                echo "<br>"
+                echo "delete $job_name";
             ?>
 
 
